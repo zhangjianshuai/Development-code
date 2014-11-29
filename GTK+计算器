@@ -1,0 +1,208 @@
+#include<gtk/gtk.h>
+#include<stdlib.h>
+
+static GtkWidget *entry;
+gint count = 0 ;
+gdouble nn = 0 ;
+gdouble mm = 0 ;
+gint s = 0 ; 
+gboolean first = TRUE;
+gboolean have_dot = FALSE;
+gboolean have_result = FALSE;
+gchar number[100];
+
+void clear_all (void)//清除所有相关标记
+{
+gint i; 
+gtk_entry_set_text(GTK_ENTRY(entry),"");
+nn = 0; 
+mm = 0 ; 
+s = 0; 
+count = 0 ; 
+first = TRUE; 
+have_dot = FALSE; 
+have_result = FALSE; 
+for(i = 0 ; i < 100 ; i++)
+
+number[i] = '\0';
+}
+
+
+void button_point_clicked (GtkButton* button,gpointer data)
+{ //当小数点按下时 
+gint i; 
+if(have_result)
+clear_all();
+if(have_dot==FALSE){ 
+have_dot = TRUE; 
+i = g_strlcat(number,".",100);
+gtk_entry_set_text(GTK_ENTRY(entry),number);
+}
+}
+void button_num_clicked (GtkButton* button,gpointer data) 
+{ //当数定键按下时执行
+const gchar *num;
+gint i; 
+if(have_result)
+clear_all();
+if(count == 6) 
+return; 
+count++; 
+num = gtk_button_get_label(GTK_BUTTON(button));//取数
+i = g_strlcat(number,num,100);
+if(first)
+nn = strtod(number,NULL);	
+else mm = strtod(number,NULL); 
+gtk_entry_set_text(GTK_ENTRY(entry),number);//显示
+}
+
+void button_clear_clicked (GtkButton* button,gpointer data)
+{ 
+clear_all();
+} 
+
+
+void button_xianshi_clicked (GtkButton* button,gpointer data) 
+{ //当计算按钮 +，-，*，/ 按下时 
+gint i; 
+switch(GPOINTER_TO_INT(data))
+{case 1: //"+"
+s = 1; gtk_entry_set_text(GTK_ENTRY(entry),"");
+first = FALSE ; 
+count = 0; 
+break; 
+case 2: //"-"
+s = 2; 
+gtk_entry_set_text(GTK_ENTRY(entry),"");
+first = FALSE ; 
+count = 0; break; 
+
+case 3: //"*"
+s = 3; 
+gtk_entry_set_text(GTK_ENTRY(entry),"");
+first = FALSE ; 
+count = 0; 
+break; 
+
+case 4: //"/"
+s = 4; 
+gtk_entry_set_text(GTK_ENTRY(entry),"");
+first = FALSE ; 
+count = 0; 
+break; 
+
+}
+
+have_dot = FALSE; 
+for(i = 0 ; i < 100 ; i++) 
+number[i] = '\0';
+}
+
+void button_suan_clicked (GtkButton* button,gpointer data) 
+{ //当等号键按钮按下时
+ double numb;  
+gchar num[100];  
+gchar *result; 
+switch(s)
+{
+case 1: //"+"
+numb = nn+mm; 
+break; 
+
+case 2: //"-"
+numb = nn-mm; 
+break; 
+
+case 3: //"*"
+numb = nn*mm; 
+break; 
+
+case 4: //"/"
+numb = nn/mm;
+break; 
+} 
+
+result = g_ascii_dtostr(num,100,numb);
+gtk_entry_set_text(GTK_ENTRY(entry),result);
+have_result = TRUE; 
+
+}
+
+int main(int argc,char *argv[])
+{
+	GtkWidget *window;
+	GtkWidget *table;
+	GtkWidget *button;
+	GtkWidget *label;
+	GtkWidget *button2;
+	GtkWidget *Vbox;
+	GtkWidget *Hbox;
+	//GtkWidget *name;
+	char *values[16] = {"7","8","9","+",
+			    "4","5","6","-",
+			    "1","2","3","*",
+			    "0",".","=","/"	
+};
+	gtk_init(&argc,&argv);
+	window=gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_position(GTK_WINDOW(window),GTK_WIN_POS_CENTER);
+	gtk_window_set_default_size(GTK_WINDOW(window),180,130);
+	gtk_window_set_title(GTK_WINDOW(window),"计算器");
+	gtk_container_set_border_width(GTK_CONTAINER(window),5);
+	table=gtk_table_new(4,4,TRUE);
+	gtk_table_set_row_spacings(GTK_TABLE(table),8);
+	gtk_table_set_col_spacings(GTK_TABLE(table),8);
+	int i=0;
+	int j=0;
+	int pos=0;
+	for(i=0;i<4;i++){
+	for(j=0;j<4;j++){
+		button = gtk_button_new_with_label(values[pos]);
+		gtk_table_attach_defaults(GTK_TABLE(table),button,j,j+1,i,i+1);
+	if(pos==12 || pos==8 || pos==9 || pos==10 || pos==4 || pos==5 || pos==6 || pos==0 || pos==1 || pos==2)
+	{g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(button_num_clicked),NULL);}
+		
+	else if(pos==3)
+	{g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(button_xianshi_clicked),(gpointer)1);}
+	else if (pos==7)
+	{g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(button_xianshi_clicked),(gpointer)2);}
+	else if (pos==11)
+	{g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(button_xianshi_clicked),(gpointer)3);}
+	else if (pos==15)
+	{g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(button_xianshi_clicked),(gpointer)4);}
+
+	else if(pos==13)
+	{g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(button_point_clicked),NULL);}
+
+	else if(pos==14)
+	{g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(button_suan_clicked),NULL);}
+		pos++;
+		}
+	}
+	
+	label=gtk_label_new("Calculator");
+	button2=gtk_button_new_with_label("Clear");
+	Vbox=gtk_vbox_new(FALSE,0);
+	Hbox=gtk_hbox_new(TRUE,0);
+	entry=gtk_entry_new();
+	gtk_widget_set_direction(entry,GTK_TEXT_DIR_RTL);//显示位置靠右
+	gtk_entry_set_editable(GTK_TEXT_VIEW(entry),FALSE);//文本框只可读
+	gtk_box_pack_start(GTK_BOX(Hbox),label,FALSE,FALSE,5);
+	gtk_box_pack_start(GTK_BOX(Hbox),button2,FALSE,FALSE,5);
+	g_signal_connect(G_OBJECT(button2),"clicked",G_CALLBACK(button_clear_clicked),NULL);
+	
+	gtk_box_pack_start(GTK_BOX(Vbox),GTK_WIDGET(Hbox),FALSE,FALSE,5);
+	gtk_box_pack_start(GTK_BOX(Vbox),entry,FALSE,FALSE,5);
+	gtk_box_pack_start(GTK_BOX(Vbox),table,TRUE,FALSE,10);
+	gtk_container_add(GTK_CONTAINER(window),Vbox);
+	g_signal_connect_swapped(G_OBJECT(window),"destroy",G_CALLBACK(gtk_main_quit),G_OBJECT(window));
+	
+	
+
+
+	gtk_widget_show(entry);
+	gtk_widget_show_all(window);
+	gtk_main();
+	return 0 ;
+
+}
