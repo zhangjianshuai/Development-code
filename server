@@ -1,0 +1,153 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <gtk/gtk.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <pthread.h>
+gint sockfd,connfd;
+struct sockaddr_in server;
+struct sockaddr_in client;
+socklen_t addrlen;
+gchar buf[1024];
+gchar get_buf[1024];
+gboolean isconnected = FALSE;
+static GtkWidget *text;
+static GtkTextBuffer *buffer;
+static GtkWidget *message_entry;
+gboolean do_connect(void)
+{
+	GtkTextIter iter;
+	sockfd=socket(AF_INET,SOCK_STREAM,0);
+	if(sockfd==-1)
+  	{
+	printf("Create socket failed\n");
+	perror("socket()");
+    	return -1;
+  	}
+
+  	server.sin_family=AF_INET;
+  	server.sin_port=htons(1234);
+  	server.sin_addr.s_addr=inet_addr("127.0.0.1");
+	printf("begin bind\n"); 
+ 	int bind_id=bind(sockfd,(struct sockaddr *)&server,sizeof(server));
+  	if(bind_id==-1)
+  	{
+	printf("Bind failed\n");
+  	perror("bind()");
+   	return -1;
+  	}
+	printf("begin listen\n"); 
+  	int listen_id;
+  	if((listen_id=listen(sockfd,1))==-1)
+  	{
+  	 perror("listen()");
+   	return -1;
+ 	 }
+	printf("begin accept\n"); 
+		addrlen=sizeof(client);
+		connfd=accept(sockfd,(struct sockaddr *)&client,&addrlen);
+		if(connfd==-1)
+			{
+			printf("accept failed\n");
+			perror("accept()");
+			return -1;
+			}
+
+	else
+ 	{
+   	gtk_text_buffer_get_end_iter(buffer,&iter);
+  	gtk_text_buffer_insert(buffer,&iter,"connect succes\n",-1);
+   	isconnected=TRUE;
+	printf("connect success\n");
+	 return TRUE; 
+  	}
+  
+}
+
+void on_delete_event(GtkWidget *widget,GdkEvent* event,gpointer data)
+	{
+	close(sockfd);
+	gtk_main_quit();
+	}
+void on_send(GtkButton* button,gpointer data)
+	{
+	const char* message;
+	GtkTextIter iter;
+	gint write_id;
+	bzero(buf,1024);
+	message = gtk_entry_get_text(GTK_ENTRY(message_entry));
+	sprintf(buf,"server:%s\n",message);
+	g_print("server%s\n",(gchar *)buf);
+	write_id=write(connfd,buf,strlen(buf));
+	if(write_id==-1)
+	{
+	perror("write()");
+	}
+	gtk_entry_set_text(GTK_ENTRY(message_entry),"");
+	gtk_text_buffer_get_end_iter(buffer,&iter);
+	gtk_text_buffer_insert(buffer,&iter,buf,-1);
+}
+
+void *tcp_read(void* a)
+{
+	GtkTextIter iter;
+	gint num=1;
+	g_print("server begin to read\n");
+	while(num>0)
+	{
+	bzero(get_buf,1024);
+	num = read(*(int*)(a),get_buf,1024);
+	//g_print("num %s\n",num);
+	g_print("server%s\n",(gchar *)get_buf);
+	gtk_text_buffer_get_end_iter(buffer,&iter);
+	gtk_text_buffer_insert(buffer,&iter,get_buf,-1);
+	}
+}
+
+int main(int argc,char *argv[])
+{
+	GtkWidget *window;
+	GtkWidget *vbox,*hbox,*button,*label,*view;  
+	gtk_init(&argc,&argv);
+	window=gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_title(GTK_WINDOW(window),"window server");
+	g_signal_connect(G_OBJECT(window),"delete_event",G_CALLBACK(on_delete_event),NULL);
+	gtk_container_set_border_width(GTK_CONTAINER(window),10);
+	vbox=gtk_vbox_new(FALSE,0);
+	gtk_container_add(GTK_CONTAINER(window),vbox);
+	hbox=gtk_hbox_new(FALSE,0);
+	gtk_box_pack_start(GTK_BOX(vbox),hbox,FALSE,FALSE,5);
+	label=gtk_label_new("show from client");
+	gtk_box_pack_start(GTK_BOX(hbox),label,FALSE,FALSE,5);
+	view=gtk_scrolled_window_new(NULL,NULL);
+
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(view),	GTK_POLICY_AUTOMATIC,GTK_POLICY_AUTOMATIC);
+	text=gtk_text_view_new();
+
+	gtk_text_view_set_editable(GTK_TEXT_VIEW(text),FALSE); //Read Only
+	gtk_box_pack_start(GTK_BOX(vbox),view,TRUE,TRUE,5);
+	gtk_container_add(GTK_CONTAINER(view),text);
+	buffer=gtk_text_view_get_buffer(GTK_TEXT_VIEW(text));
+	hbox=gtk_hbox_new(FALSE,0);
+	gtk_box_pack_start(GTK_BOX(vbox),hbox,FALSE,FALSE,5);
+	label=gtk_label_new("please enter message:");
+	gtk_box_pack_start(GTK_BOX(hbox),label,FALSE,FALSE,5);
+	message_entry=gtk_entry_new();
+	gtk_box_pack_start(GTK_BOX(hbox),message_entry,FALSE,FALSE,5);
+	button=gtk_button_new_with_label("send");
+	gtk_box_pack_start(GTK_BOX(hbox),button,FALSE,FALSE,5);
+	g_signal_connect(G_OBJECT(button),"clicked",G_CALLBACK(on_send),NULL);
+	do_connect();
+	
+	pthread_t id2; 
+	pthread_create(&id2,0,tcp_read,&connfd);
+	
+
+	gtk_widget_show_all(window);
+	gtk_main();
+	return FALSE;
+}
