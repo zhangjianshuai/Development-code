@@ -151,3 +151,7 @@ int main(int argc,char *argv[])
 	gtk_main();
 	return FALSE;
 }
+makefile文件
+server:server.c
+	gcc -o server server.c `pkg-config --cflags --libs gtk+-2.0` -lpthread
+	运行环境Linux下
