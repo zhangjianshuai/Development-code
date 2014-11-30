@@ -142,3 +142,9 @@ int main(int argc,char *argv[])
 	gtk_main();
 	return FALSE;
 }
+
+
+makefile 文件
+client:client.c
+	gcc -o client client.c `pkg-config --cflags --libs gtk+-2.0` -lpthread
+运行环境 Linux 虚拟机下。
